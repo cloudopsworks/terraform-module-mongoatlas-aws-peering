@@ -17,7 +17,11 @@ variables:
     type: string
     default: ""
   - name: apply_routing_tables
-    description: "Apply routing tables"
+    description: "Apply MongoDB CIDR on VPC routing tables"
+    type: bool
+    default: true
+  - name: apply_mongodb_access
+    description: "Apply VPC CIDR on MongoDB access lists"
     type: bool
     default: true
   # Generic Boilerplate Variables Setup
