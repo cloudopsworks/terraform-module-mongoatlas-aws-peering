@@ -48,15 +48,14 @@ inputs = {
   spoke_def = local.spoke_vars.spoke_def
   {{- end}}
   ## Required
-  {{- range .requiredVariables }}
-  {{- if ne .Name "org" }}
-  {{ .Name }} = try(local.local_vars.{{ .Name }}, {{ .DefaultValue }})
-  {{- end }}
-  {{- end }}
+  project_id = try(local.local_vars.project_id, "")
+  project_name = try(local.local_vars.project_name, "")
+  atlas_container_id = local.local_vars.atlas_container_id
+  settings = try(local.local_vars.settings, {})
 
   ## Optional
   {{- range .optionalVariables }}
-  {{- if ne .Name "extra_tags" "is_hub" "spoke_def" "org" }}
+  {{- if ne .Name "extra_tags" "is_hub" "spoke_def" "org" "project_id" "project_name" "settings" }}
   {{ .Name }} = try(local.local_vars.{{ .Name }}, {{ .DefaultValue }})
   {{- end }}
   {{- end }}
