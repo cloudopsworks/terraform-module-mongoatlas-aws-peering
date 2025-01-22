@@ -4,6 +4,22 @@
 #            Distributed Under Apache v2.0 License
 #
 variables:
+  - name: project_id
+    description: "MongoDB atlas Project ID, optional, if not provided, must provide Project Name"
+    type: string
+    default: ""
+  - name: project_name
+    description: "MongoDB atlas Project Name, optional, if not provided, must provide Project ID"
+    type: string
+    default: ""
+  - name: atlas_container_id
+    description: "MongoDB atlas Container ID"
+    type: string
+    default: ""
+  - name: apply_routing_tables
+    description: "Apply routing tables"
+    type: bool
+    default: true
   # Generic Boilerplate Variables Setup
   - name: tags
     description: "Tags"

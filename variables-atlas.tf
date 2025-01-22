@@ -30,13 +30,15 @@ variable "settings" {
 variable "vpc" {
   description = "The VPC where the peering connection will be created"
   type = object({
-    vpc_id     = string
-    region     = string
-    cidr_block = string
+    vpc_id          = string
+    region          = string
+    cidr_block      = string
+    route_table_ids = list(string)
   })
   default = {
-    vpc_id     = ""
-    region     = "us-east-1"
-    cidr_block = "0.0.0.0/0"
+    vpc_id          = ""
+    region          = "us-east-1"
+    cidr_block      = "0.0.0.0/0"
+    route_table_ids = []
   }
 }

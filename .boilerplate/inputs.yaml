@@ -3,11 +3,4 @@ project_id: {{ .project_id }}
 project_name: {{ .project_name }}
 atlas_container_id: {{ .atlas_container_id }}
 settings:
-  add_vpc_routes: true
-# Optional variables
-{{- range .optionalVariables }}
-# Description {{ .Description }} , Type: {{ .Type }}
-#{{ .Name }}: {{ .DefaultValue }}
-
-{{- end }}
-
+  apply_route_tables: {{ .apply_routing_tables }}

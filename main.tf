@@ -30,3 +30,9 @@ resource "aws_vpc_peering_connection_accepter" "this" {
   tags                      = local.all_tags
 }
 
+resource "aws_route" "this" {
+  for_each                  = toset(try(var.settings.apply_route_tables, false) ? var.vpc.route_table_ids : [])
+  route_table_id            = each.key
+  destination_cidr_block    = mongodbatlas_network_peering.this.atlas_cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection_accepter.this.vpc_peering_connection_id
+}
