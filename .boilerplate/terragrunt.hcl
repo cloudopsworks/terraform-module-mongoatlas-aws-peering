@@ -55,7 +55,7 @@ inputs = {
 
   ## Optional
   {{- range .optionalVariables }}
-  {{- if ne .Name "extra_tags" "is_hub" "spoke_def" "org" "project_id" "project_name" "settings" }}
+  {{- if (eq .Name "extra_tags" "is_hub" "spoke_def" "org" "project_id" "project_name" "settings" | not) }}
   {{ .Name }} = try(local.local_vars.{{ .Name }}, {{ .DefaultValue }})
   {{- end }}
   {{- end }}
