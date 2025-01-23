@@ -4,23 +4,27 @@
 #            Distributed Under Apache v2.0 License
 #
 variables:
+  - name: project_id
+    description: "MongoDB atlas Project ID, optional, if not provided, must provide Project Name"
+    type: string
+    default: ""
+  - name: project_name
+    description: "MongoDB atlas Project Name, optional, if not provided, must provide Project ID"
+    type: string
+    default: ""
+  - name: atlas_container_id
+    description: "MongoDB atlas Container ID"
+    type: string
+    default: ""
+  - name: apply_routing_tables
+    description: "Apply MongoDB CIDR on VPC routing tables"
+    type: bool
+    default: true
+  - name: apply_mongodb_access
+    description: "Apply VPC CIDR on MongoDB access lists"
+    type: bool
+    default: true
   # Generic Boilerplate Variables Setup
-  - name: organization_name
-    description: "Organization Name"
-    type: string
-    default: "Organization"
-  - name: organization_unit
-    description: "Organization Unit"
-    type: string
-    default: "Unit"
-  - name: environment_name
-    description: "Environment Name"
-    type: string
-    default: "DEV"
-  - name: environment_type
-    description: "Environment Type"
-    type: string
-    default: "Testing"
   - name: tags
     description: "Tags"
     type: map
