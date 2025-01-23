@@ -32,6 +32,24 @@ locals {
   {{- end }}
 }
 
+generate "provider-mongoatlas" {
+path      = "provider-mongoatlas.g.tf"
+if_exists = "overwrite_terragrunt"
+contents  = <<EOF
+provider "mongodbatlas" {
+  assume_role {
+    role_arn     = "${local.global_vars.mongodb_atlas.secrets.sts_role_arn}"
+  }
+  secret_name = "${local.global_vars.mongodb_atlas.secrets.name}"
+  region      = "${local.global_vars.mongodb_atlas.secrets.region}"
+}
+EOF
+}
+
+include "root" {
+  path = find_in_parent_folders("root.hcl")
+}
+
 terraform {
   source = "{{ .sourceUrl }}"
 }
