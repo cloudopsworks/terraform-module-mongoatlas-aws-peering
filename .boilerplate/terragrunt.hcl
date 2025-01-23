@@ -32,24 +32,6 @@ locals {
   {{- end }}
 }
 
-generate "provider-mongoatlas" {
-path      = "provider-mongoatlas.g.tf"
-if_exists = "overwrite_terragrunt"
-contents  = <<EOF
-provider "mongodbatlas" {
-  assume_role {
-    role_arn     = "${local.global_vars.mongodb_atlas.secrets.sts_role_arn}"
-  }
-  secret_name = "${local.global_vars.mongodb_atlas.secrets.name}"
-  region      = "${local.global_vars.mongodb_atlas.secrets.region}"
-}
-EOF
-}
-
-include "root" {
-  path = find_in_parent_folders("root.hcl")
-}
-
 terraform {
   source = "{{ .sourceUrl }}"
 }
@@ -66,14 +48,15 @@ inputs = {
   spoke_def = local.spoke_vars.spoke_def
   {{- end}}
   ## Required
-  project_id = try(local.local_vars.project_id, "")
-  project_name = try(local.local_vars.project_name, "")
-  atlas_container_id = local.local_vars.atlas_container_id
-  settings = try(local.local_vars.settings, {})
+  {{- range .requiredVariables }}
+  {{- if ne .Name "org" }}
+  {{ .Name }} = try(local.local_vars.{{ .Name }}, {{ .DefaultValue }})
+  {{- end }}
+  {{- end }}
 
   ## Optional
   {{- range .optionalVariables }}
-  {{- if (eq .Name "extra_tags" "is_hub" "spoke_def" "org" "project_id" "project_name" "settings" | not) }}
+  {{- if ne .Name "extra_tags" "is_hub" "spoke_def" "org" }}
   {{ .Name }} = try(local.local_vars.{{ .Name }}, {{ .DefaultValue }})
   {{- end }}
   {{- end }}
