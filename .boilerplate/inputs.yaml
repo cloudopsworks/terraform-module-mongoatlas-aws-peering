@@ -1,7 +1,18 @@
 # Module configuration
-project_id: {{ .project_id }}
-project_name: {{ .project_name }}
-atlas_container_id: {{ .atlas_container_id }}
-settings:
-  enable_vpc_route_tables: {{ .apply_routing_tables }}
-  enable_mongo_ip_access_list: {{ .apply_mongodb_access }}
+# Required variables
+{{- range .requiredVariables }}
+{{- if ne .Name "org"}}
+# Description {{ .Description }} , Type: {{ .Type }}
+{{ .Name }}: {{ .DefaultValuePlaceholder }}
+{{- end }}
+
+{{- end }}
+# Optional variables
+{{- range .optionalVariables }}
+{{- if ne .Name "is_hub" "spoke_def" "extra_args" }}
+# Description {{ .Description }} , Type: {{ .Type }}
+#{{ .Name }}: {{ .DefaultValue }}
+{{- end }}
+
+{{- end }}
+
