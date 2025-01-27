@@ -1,4 +1,4 @@
-name: Terraform Transit Gateway Module
+name: Terraform MongoDB Atlas AWS Peering Module
 #logo: logo/logo.jpg
 
 license: "APACHE2"
@@ -8,21 +8,103 @@ copyrights:
     url: "https://cloudops.works"
     year: "2024"
 
-github_repo: cloudopsworks/terraform-module-aws-vpc-setup
+github_repo: cloudopsworks/terraform-module-mongoatlas-aws-peering
 
 description: |-
-  VPC Module for setting up transit gateway with ResourceAccessMananger support.
+  This Terraform module creates and manages peering connections between AWS and MongoDB Atlas.  
+  It sets up the necessary AWS VPC peering resources on both ends to ensure secure, private connectivity  
+  for Atlas clusters. The module is compatible with AWS providers and includes IAM roles and route table updates  
+  as necessary.
 
 # Introduction to the project
 #introduction: |-
 #  This is an introduction.
 
 # How to use this project
-#usage: |-
+usage: |-
+  ## Basic Usage with Terraform
+
+  ```hcl
+  module "mongoatlas_aws_peering" {
+    source  = "git::https://github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering.git?ref=VERSION_TAG"
+
+    atlas_project_id     = "your-atlas-project-id"
+    atlas_vpc_cidr_block = "10.0.0.0/24"
+    vpc_id               = "vpc-123456"
+    region               = "us-east-1"
+    # ... other variables as needed
+  }
+  ```
+
+  Then run:
+
+  ```bash
+  terraform init
+  terraform plan
+  terraform apply
+  ```
+
+  ---
+  ## Usage with Terragrunt and Boilerplate Template
+
+  When using [Terragrunt](https://terragrunt.gruntwork.io/) to manage remote state and reduce boilerplate, you can scaffold
+  a standardized folder structure to keep your configurations DRY (Don’t Repeat Yourself). A common Terragrunt folder
+  layout might look like this:
+  ```
+  ├── live
+  │   ├── dev
+  │   │   └── mongo-atlas-peering
+  │   │       ├── main.hcl
+  │   │       └── terragrunt.hcl
+  │   ├── stage
+  │   │   └── mongo-atlas-peering
+  │   │       ├── main.hcl
+  │   │       └── terragrunt.hcl
+  │   └── prod
+  │       └── mongo-atlas-peering
+  │           ├── main.hcl
+  │           └── terragrunt.hcl
+  └── modules
+      └── mongoatlas-aws-peering
+      ├── main.tf
+      ├── variables.tf
+      └── outputs.tf
+  ```
 
 # Example usage
-#examples: |-
-
+examples: |-
+  **Example `terragrunt.hcl`**:
+  ```hcl
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering.git//?ref=VERSION_TAG"
+  }
+    
+  inputs = {
+    atlas_project_id     = "your-atlas-project-id"
+    atlas_vpc_cidr_block = "10.0.0.0/24"
+    vpc_id               = "vpc-123456"
+    region               = "us-east-1"
+  # ...
+  }
+    
+  remote_state {
+    backend = "s3"
+    config = {
+      bucket = "my-terraform-states"
+      key    = "dev/mongo-atlas-peering/terraform.tfstate"
+      region = "us-east-1"
+    # ...
+    }
+  }
+  ```
+  
+  Then run:  
+  ```bash
+  cd live/dev/mongo-atlas-peering
+  terragrunt init
+  terragrunt plan
+  terragrunt apply
+  ```
 # How to get started quickly
 #quickstart: |-
 
