@@ -21,6 +21,11 @@ variable "atlas_container_id" {
   type        = string
 }
 
+## Peering Settings - YAML
+# settings:
+#   enable_vpc_dns_resolution: true | false # (optional) Enable DNS resolution for the VPC peering connection
+#   enable_vpc_route_tables: true | false # (optional) Enable route table updates for the VPC peering connection
+#   enable_mongo_ip_access_list: true | false # (optional) Enable MongoDB Atlas IP access list updates for the VPC peering connection
 variable "settings" {
   description = "Settings for the module"
   type        = any

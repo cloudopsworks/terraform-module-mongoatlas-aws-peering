@@ -30,6 +30,14 @@ resource "aws_vpc_peering_connection_accepter" "this" {
   tags                      = local.all_tags
 }
 
+resource "aws_vpc_peering_connection_options" "this" {
+  depends_on                = [aws_vpc_peering_connection_accepter.this]
+  vpc_peering_connection_id = mongodbatlas_network_peering.this.connection_id
+  accepter {
+    allow_remote_vpc_dns_resolution = try(var.settings.enable_vpc_dns_resolution, true)
+  }
+}
+
 resource "aws_route" "this" {
   for_each                  = toset(try(var.settings.enable_vpc_route_tables, false) ? var.vpc.route_table_ids : [])
   route_table_id            = each.key
@@ -43,5 +51,4 @@ resource "mongodbatlas_project_ip_access_list" "this" {
   project_id = var.project_id != "" ? var.project_id : data.mongodbatlas_project.this[0].project_id
   cidr_block = var.vpc.cidr_block
   comment    = "VPC ${var.vpc.vpc_id} Peering Access"
-
 }
