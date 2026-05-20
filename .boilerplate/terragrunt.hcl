@@ -119,15 +119,10 @@ inputs = {
   {{ .Name }} = dependency.project.outputs.project_id
   {{- else if and $.vpc (eq .Name "vpc") }}
   {{ .Name }} = {
-  vpc_id         = dependency.vpc.outputs.vpc_id
-    vpc_cidr_block = dependency.vpc.outputs.vpc_cidr_block
-    {{- if eq $.vpc_subnet_selection "database" }}
-    subnet_ids = dependency.vpc.outputs.database_subnets
-    {{- else if eq $.vpc_subnet_selection "private" }}
-    subnet_ids = dependency.vpc.outputs.private_subnets
-    {{- else if eq $.vpc_subnet_selection "intra" }}
-    subnet_ids = dependency.vpc.outputs.intra_subnets
-    {{- end }}
+    vpc_id          = dependency.vpc.outputs.vpc_id
+    region          = local.region_vars.region
+    cidr_block      = dependency.vpc.outputs.vpc_cidr_block
+    route_table_ids = dependency.vpc.outputs.{{ $.vpc_subnet_selection }}_route_table_ids
   }
   {{- else }}
   {{ .Name }} = try(local.local_vars.{{ .Name }}, {{ .DefaultValue }})
