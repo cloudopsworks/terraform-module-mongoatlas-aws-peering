@@ -30,18 +30,28 @@ variables:
     description: "Project Path, required if project is true"
     type: string
     default: "../project"
-  - name: vpc
+  - name: atlas_container
     order: 4
+    description: "Atlas Container Dependency is enabled?"
+    type: bool
+    default: true
+  - name: atlas_container_path
+    order: 5
+    description: "Atlas Container Path, required if atlas_container is true"
+    type: string
+    default: "../network-container"
+  - name: vpc
+    order: 6
     description: "VPC Dependency is enabled?"
     type: bool
     default: true
   - name: vpc_path
-    order: 5
+    order: 7
     description: "VPC Path, required if vpc is true"
     type: string
     default: "../vpc"
   - name: vpc_subnet_selection
-    order: 6
+    order: 8
     description: "VPC Database Subnet dependecy assignment"
     type: enum
     default: database
