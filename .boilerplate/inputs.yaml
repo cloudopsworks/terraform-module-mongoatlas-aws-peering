@@ -1,18 +1,30 @@
-# Module configuration
-# Required variables
-{{- range .requiredVariables }}
-{{- if ne .Name "org"}}
-# Description {{ .Description }} , Type: {{ .Type }}
-{{ .Name }}: {{ .DefaultValuePlaceholder }}
-{{- end }}
+# Module configuration — MongoDB Atlas AWS VPC Peering
 
-{{- end }}
-# Optional variables
-{{- range .optionalVariables }}
-{{- if ne .Name "is_hub" "spoke_def" "extra_args" }}
-# Description {{ .Description }} , Type: {{ .Type }}
-#{{ .Name }}: {{ .DefaultValue }}
-{{- end }}
+# atlas_container_id: "container-id"  # (Required) The ID of the MongoDB Atlas network container to peer with.
+atlas_container_id: ""
 
-{{- end }}
+# project_id: ""       # (Optional) The MongoDB Atlas project ID. Provide this OR project_name, not both. Default: ""
+project_id: ""
 
+# project_name: ""     # (Optional) The MongoDB Atlas project name. Provide this OR project_id, not both. Default: ""
+project_name: ""
+
+# vpc:                             # (Required) AWS VPC details for the peering connection.
+#   vpc_id: "vpc-12345678"         # (Required) The ID of the AWS VPC.
+#   region: "us-east-1"            # (Required) The AWS region of the VPC (e.g. us-east-1, eu-west-1).
+#   cidr_block: "10.0.0.0/16"     # (Required) The CIDR block of the AWS VPC.
+#   route_table_ids: []            # (Optional) Route table IDs to update when enable_vpc_route_tables is true.
+vpc:
+  vpc_id: ""
+  region: "us-east-1"
+  cidr_block: "0.0.0.0/0"
+  route_table_ids: []
+
+# settings:                              # (Optional) Behaviour settings for the peering module.
+#   enable_vpc_dns_resolution: true      # (Optional) Allow DNS resolution across the peering connection. Default: true
+#   enable_vpc_route_tables: false       # (Optional) Add Atlas CIDR routes to the VPC route tables. Default: false
+#   enable_mongo_ip_access_list: false   # (Optional) Add the VPC CIDR to the Atlas project IP access list. Default: false
+settings:
+  enable_vpc_dns_resolution: true
+  enable_vpc_route_tables: false
+  enable_mongo_ip_access_list: false

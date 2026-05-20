@@ -12,13 +12,14 @@
 
 # Terraform MongoDB Atlas AWS Peering Module
 
+ [![Latest Release](https://img.shields.io/github/release/cloudopsworks/terraform-module-mongoatlas-aws-peering.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering/releases/latest) [![Last Updated](https://img.shields.io/github/last-commit/cloudopsworks/terraform-module-mongoatlas-aws-peering.svg?style=for-the-badge)](https://github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering/commits)
 
 
-
-This Terraform module creates and manages peering connections between AWS and MongoDB Atlas.  
-It sets up the necessary AWS VPC peering resources on both ends to ensure secure, private connectivity  
-for Atlas clusters. The module is compatible with AWS providers and includes IAM roles and route table updates  
-as necessary.
+This Terraform module creates and manages VPC peering connections between AWS and MongoDB Atlas.
+It provisions the MongoDB Atlas network peering resource, accepts the AWS-side peering connection,
+and optionally configures DNS resolution, route table entries, and the Atlas project IP access list.
+The module integrates with the CloudOps Works Terragrunt hierarchy for org, environment, region,
+and spoke context.
 
 
 ---
@@ -46,6 +47,33 @@ We have [*lots of terraform modules*][terraform_modules] that are Open Source an
 
 
 
+## Introduction
+
+## Overview
+
+The **terraform-module-mongoatlas-aws-peering** module establishes private network connectivity
+between an AWS VPC and a MongoDB Atlas cluster by:
+
+- Creating a `mongodbatlas_network_peering` resource in the specified Atlas project and container.
+- Accepting the corresponding `aws_vpc_peering_connection_accepter` on the AWS side.
+- Optionally enabling cross-VPC DNS resolution via `aws_vpc_peering_connection_options`.
+- Optionally adding Atlas CIDR routes to selected VPC route tables (`aws_route`).
+- Optionally registering the VPC CIDR in the Atlas project IP access list.
+
+### Requirements
+
+| Name | Version |
+|------|---------|
+| terraform | >= 1.3 |
+| hashicorp/aws | ~> 6.35 |
+| mongodb/mongodbatlas | ~> 2.1 |
+
+### Providers
+
+| Name | Source |
+|------|--------|
+| aws | hashicorp/aws |
+| mongodbatlas | mongodb/mongodbatlas |
 
 ## Usage
 
@@ -54,91 +82,192 @@ We have [*lots of terraform modules*][terraform_modules] that are Open Source an
 Instead pin to the release tag (e.g. `?ref=vX.Y.Z`) of one of our [latest releases](https://github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering/releases).
 
 
-## Basic Usage with Terraform
+## Terragrunt Scaffolding (Recommended)
+
+Use `terragrunt scaffold` to bootstrap a new deployment directory with pre-populated
+`terragrunt.hcl` and `inputs.yaml` files.
+
+```sh
+# 1. Create and enter the target deployment directory
+mkdir -p <environment>/<region>/<spoke>/mongoatlas-aws-peering
+cd <environment>/<region>/<spoke>/mongoatlas-aws-peering
+
+# 2. Scaffold the module (do NOT use --working-dir)
+terragrunt scaffold github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering
+
+# 3. Edit inputs.yaml with deployment-specific values
+vi inputs.yaml
+
+# 4. Apply
+terragrunt apply
+```
+
+### Generated `inputs.yaml`
+
+After scaffolding, edit `inputs.yaml` with your deployment values:
+
+```yaml
+# Module configuration — MongoDB Atlas AWS VPC Peering
+
+# atlas_container_id: "container-id"  # (Required) The ID of the MongoDB Atlas network container to peer with.
+atlas_container_id: ""
+
+# project_id: ""       # (Optional) The MongoDB Atlas project ID. Provide this OR project_name, not both. Default: ""
+project_id: ""
+
+# project_name: ""     # (Optional) The MongoDB Atlas project name. Provide this OR project_id, not both. Default: ""
+project_name: ""
+
+# vpc:                             # (Required) AWS VPC details for the peering connection.
+#   vpc_id: "vpc-12345678"         # (Required) The ID of the AWS VPC.
+#   region: "us-east-1"            # (Required) The AWS region of the VPC (e.g. us-east-1, eu-west-1).
+#   cidr_block: "10.0.0.0/16"     # (Required) The CIDR block of the AWS VPC.
+#   route_table_ids: []            # (Optional) Route table IDs to update when enable_vpc_route_tables is true.
+vpc:
+  vpc_id: "vpc-12345678"
+  region: "us-east-1"
+  cidr_block: "10.0.0.0/16"
+  route_table_ids: []
+
+# settings:                              # (Optional) Behaviour settings for the peering module.
+#   enable_vpc_dns_resolution: true      # (Optional) Allow DNS resolution across the peering connection. Default: true
+#   enable_vpc_route_tables: false       # (Optional) Add Atlas CIDR routes to the VPC route tables. Default: false
+#   enable_mongo_ip_access_list: false   # (Optional) Add the VPC CIDR to the Atlas project IP access list. Default: false
+settings:
+  enable_vpc_dns_resolution: true
+  enable_vpc_route_tables: false
+  enable_mongo_ip_access_list: false
+```
+
+### Generated `terragrunt.hcl`
+
+The scaffold command generates a `terragrunt.hcl` that loads `inputs.yaml` as `local.local_vars`
+and wires it into the `inputs` block:
 
 ```hcl
-module "mongoatlas_aws_peering" {
-  source  = "git::https://github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering.git?ref=VERSION_TAG"
+locals {
+  local_vars  = yamldecode(file("./inputs.yaml"))
+  spoke_vars  = yamldecode(file(find_in_parent_folders("spoke-inputs.yaml")))
+  region_vars = yamldecode(file(find_in_parent_folders("region-inputs.yaml")))
+  env_vars    = yamldecode(file(find_in_parent_folders("env-inputs.yaml")))
+  global_vars = yamldecode(file(find_in_parent_folders("global-inputs.yaml")))
 
-  atlas_project_id     = "your-atlas-project-id"
-  atlas_vpc_cidr_block = "10.0.0.0/24"
-  vpc_id               = "vpc-123456"
-  region               = "us-east-1"
-  # ... other variables as needed
+  local_tags  = jsondecode(file("./local-tags.json"))
+  spoke_tags  = jsondecode(file(find_in_parent_folders("spoke-tags.json")))
+  region_tags = jsondecode(file(find_in_parent_folders("region-tags.json")))
+  env_tags    = jsondecode(file(find_in_parent_folders("env-tags.json")))
+  global_tags = jsondecode(file(find_in_parent_folders("global-tags.json")))
+
+  tags = merge(
+    local.global_tags,
+    local.env_tags,
+    local.region_tags,
+    local.spoke_tags,
+    local.local_tags
+  )
+}
+
+include "root" {
+  path = find_in_parent_folders("root.hcl")
+}
+
+dependency "atlascontainer" {
+  config_path = "../atlas-container"
+  mock_outputs_allowed_terraform_commands = ["validate", "destroy"]
+  mock_outputs = {
+    network_container_id = "7834759375uigig"
+  }
+}
+
+dependency "project" {
+  config_path = "../project"
+  mock_outputs_allowed_terraform_commands = ["validate", "destroy"]
+  mock_outputs = {
+    project_id = "8403958hjhhhtur"
+  }
+}
+
+dependency "vpc" {
+  config_path = "../vpc"
+  mock_outputs_allowed_terraform_commands = ["validate", "destroy"]
+  mock_outputs = {
+    vpc_id         = "vpc-12345678901234"
+    vpc_cidr_block = "10.0.0.0/16"
+    database_subnets = [
+      "subnet-abcdef123456789",
+      "subnet-abcdef123456781",
+    ]
+  }
+}
+
+terraform {
+  source = "github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering//?ref=v1.0.7"
+}
+
+inputs = {
+  is_hub             = false
+  org                = local.env_vars.org
+  spoke_def          = local.spoke_vars.spoke
+  atlas_container_id = dependency.atlascontainer.outputs.network_container_id
+  project_id         = dependency.project.outputs.project_id
+  vpc = {
+    vpc_id          = dependency.vpc.outputs.vpc_id
+    region          = local.region_vars.region
+    cidr_block      = dependency.vpc.outputs.vpc_cidr_block
+    route_table_ids = []
+  }
+  settings   = try(local.local_vars.settings, {})
+  extra_tags = local.tags
 }
 ```
 
-Then run:
+## Quick Start
 
-```bash
-terraform init
-terraform plan
-terraform apply
+```sh
+mkdir -p prod/us-east-1/spoke-001/mongoatlas-aws-peering
+cd prod/us-east-1/spoke-001/mongoatlas-aws-peering
+terragrunt scaffold github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering
+vi inputs.yaml   # fill in atlas_container_id, vpc details
+terragrunt apply
 ```
-
----
-## Usage with Terragrunt and Boilerplate Template
-
-When using [Terragrunt](https://terragrunt.gruntwork.io/) to manage remote state and reduce boilerplate, you can scaffold
-a standardized folder structure to keep your configurations DRY (Don’t Repeat Yourself). A common Terragrunt folder
-layout might look like this:
-```
-├── live
-│   ├── dev
-│   │   └── mongo-atlas-peering
-│   │       ├── main.hcl
-│   │       └── terragrunt.hcl
-│   ├── stage
-│   │   └── mongo-atlas-peering
-│   │       ├── main.hcl
-│   │       └── terragrunt.hcl
-│   └── prod
-│       └── mongo-atlas-peering
-│           ├── main.hcl
-│           └── terragrunt.hcl
-└── modules
-    └── mongoatlas-aws-peering
-    ├── main.tf
-    ├── variables.tf
-    └── outputs.tf
-```
-
-
 
 
 ## Examples
 
-**Example `terragrunt.hcl`**:
-```hcl
-terraform {
-  source = "git::https://github.com/cloudopsworks/terraform-module-mongoatlas-aws-peering.git//?ref=VERSION_TAG"
-}
-  
-inputs = {
-  atlas_project_id     = "your-atlas-project-id"
-  atlas_vpc_cidr_block = "10.0.0.0/24"
-  vpc_id               = "vpc-123456"
-  region               = "us-east-1"
-# ...
-}
-  
-remote_state {
-  backend = "s3"
-  config = {
-    bucket = "my-terraform-states"
-    key    = "dev/mongo-atlas-peering/terraform.tfstate"
-    region = "us-east-1"
-  # ...
-  }
-}
+### Minimal example — VPC peering with DNS resolution only
+
+```yaml
+# inputs.yaml
+atlas_container_id: "5e7e2b3e2cf09a2f9e4d5c1a"
+project_id: "5e7e2b3e2cf09a2f9e4d5c1b"
+vpc:
+  vpc_id: "vpc-0abc123456789def0"
+  region: "us-east-1"
+  cidr_block: "10.10.0.0/16"
+  route_table_ids: []
+settings:
+  enable_vpc_dns_resolution: true
+  enable_vpc_route_tables: false
+  enable_mongo_ip_access_list: false
 ```
 
-Then run:  
-```bash
-cd live/dev/mongo-atlas-peering
-terragrunt init
-terragrunt plan
-terragrunt apply
+### Full example — VPC peering with route tables and IP access list
+
+```yaml
+# inputs.yaml
+atlas_container_id: "5e7e2b3e2cf09a2f9e4d5c1a"
+project_name: "my-atlas-project"
+vpc:
+  vpc_id: "vpc-0abc123456789def0"
+  region: "eu-west-1"
+  cidr_block: "10.20.0.0/16"
+  route_table_ids:
+    - "rtb-0a1b2c3d4e5f67890"
+    - "rtb-0a1b2c3d4e5f67891"
+settings:
+  enable_vpc_dns_resolution: true
+  enable_vpc_route_tables: true
+  enable_mongo_ip_access_list: true
 ```
 
 
@@ -159,7 +288,7 @@ Available targets:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 6.35 |
 | <a name="requirement_mongodbatlas"></a> [mongodbatlas](#requirement\_mongodbatlas) | ~> 2.1 |
 
@@ -195,24 +324,24 @@ Available targets:
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_atlas_container_id"></a> [atlas\_container\_id](#input\_atlas\_container\_id) | The ID of the Atlas container | `string` | n/a | yes |
+| <a name="input_atlas_container_id"></a> [atlas\_container\_id](#input\_atlas\_container\_id) | (Required) The ID of the MongoDB Atlas network container to peer with. | `string` | n/a | yes |
 | <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Extra tags to add to the resources | `map(string)` | `{}` | no |
 | <a name="input_is_hub"></a> [is\_hub](#input\_is\_hub) | Is this a hub or spoke configuration? | `bool` | `false` | no |
 | <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
-| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | (optional) The ID of the project where the peering connection will be created | `string` | `""` | no |
-| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | (optional) The name of the project where the peering connection will be created | `string` | `""` | no |
-| <a name="input_settings"></a> [settings](#input\_settings) | Settings for the module | `any` | `{}` | no |
+| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | (Optional) The ID of the project where the peering connection will be created. Mutually exclusive with project\_name. | `string` | `""` | no |
+| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | (Optional) The name of the project where the peering connection will be created. Mutually exclusive with project\_id. | `string` | `""` | no |
+| <a name="input_settings"></a> [settings](#input\_settings) | (Optional) Behaviour settings for the peering module. Controls DNS resolution, route table updates, and Atlas IP access list. | `any` | `{}` | no |
 | <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
-| <a name="input_vpc"></a> [vpc](#input\_vpc) | The VPC where the peering connection will be created | <pre>object({<br/>    vpc_id          = string<br/>    region          = string<br/>    cidr_block      = string<br/>    route_table_ids = list(string)<br/>  })</pre> | <pre>{<br/>  "cidr_block": "0.0.0.0/0",<br/>  "region": "us-east-1",<br/>  "route_table_ids": [],<br/>  "vpc_id": ""<br/>}</pre> | no |
+| <a name="input_vpc"></a> [vpc](#input\_vpc) | (Required) The AWS VPC configuration for the peering connection. | <pre>object({<br/>    vpc_id          = string<br/>    region          = string<br/>    cidr_block      = string<br/>    route_table_ids = list(string)<br/>  })</pre> | <pre>{<br/>  "cidr_block": "0.0.0.0/0",<br/>  "region": "us-east-1",<br/>  "route_table_ids": [],<br/>  "vpc_id": ""<br/>}</pre> | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_mongodbatlas_peering_cidr_block"></a> [mongodbatlas\_peering\_cidr\_block](#output\_mongodbatlas\_peering\_cidr\_block) | n/a |
-| <a name="output_mongodbatlas_peering_connection_id"></a> [mongodbatlas\_peering\_connection\_id](#output\_mongodbatlas\_peering\_connection\_id) | n/a |
-| <a name="output_vpc_peering_accepter_id"></a> [vpc\_peering\_accepter\_id](#output\_vpc\_peering\_accepter\_id) | n/a |
-| <a name="output_vpc_peering_accepter_status"></a> [vpc\_peering\_accepter\_status](#output\_vpc\_peering\_accepter\_status) | n/a |
+| <a name="output_mongodbatlas_peering_cidr_block"></a> [mongodbatlas\_peering\_cidr\_block](#output\_mongodbatlas\_peering\_cidr\_block) | The CIDR block of the MongoDB Atlas network container used for the peering connection. |
+| <a name="output_mongodbatlas_peering_connection_id"></a> [mongodbatlas\_peering\_connection\_id](#output\_mongodbatlas\_peering\_connection\_id) | The ID of the MongoDB Atlas network peering connection. |
+| <a name="output_vpc_peering_accepter_id"></a> [vpc\_peering\_accepter\_id](#output\_vpc\_peering\_accepter\_id) | The ID of the AWS VPC peering connection accepter resource. |
+| <a name="output_vpc_peering_accepter_status"></a> [vpc\_peering\_accepter\_status](#output\_vpc\_peering\_accepter\_status) | The status of the AWS VPC peering connection accepter (e.g., active, pending-acceptance). |
 
 
 
